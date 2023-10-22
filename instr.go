@@ -20,16 +20,16 @@ type SrcDest uint16
 
 const (
 	SrcDestPins    SrcDest = 0
-	SrcDestX               = 1
-	SrcDestY               = 2
-	SrcDestNull            = 3
-	SrcDestPinDirs         = 4
-	SrcDestExecMov         = 4
-	SrcDestStatus          = 5
-	SrcDestPC              = 5
-	SrcDestISR             = 6
-	SrcDestOSR             = 7
-	SrcExecOut             = 7
+	SrcDestX       SrcDest = 1
+	SrcDestY       SrcDest = 2
+	SrcDestNull    SrcDest = 3
+	SrcDestPinDirs SrcDest = 4
+	SrcDestExecMov SrcDest = 4
+	SrcDestStatus  SrcDest = 5
+	SrcDestPC      SrcDest = 5
+	SrcDestISR     SrcDest = 6
+	SrcDestOSR     SrcDest = 7
+	SrcExecOut     SrcDest = 7
 )
 
 func MajorInstrBits(instr uint16) uint16 {
