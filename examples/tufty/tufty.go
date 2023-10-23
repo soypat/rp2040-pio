@@ -11,13 +11,14 @@ import (
 
 const clockHz = 133000000
 
+// Pimoroni Tufty definitions https://tinygo.org/docs/reference/microcontrollers/tufty2040/
 const (
-	csPin = machine.GP4
-	dcPin = machine.GP2
-	wrPin = machine.GP1
-	rdPin = machine.GP3
-	d0Pin = machine.GP0
-	blPin = machine.GP5
+	csPin  = machine.GP10
+	dcPin  = machine.GP11
+	wrPin  = machine.GP12
+	db0Pin = machine.GP14
+	rdPin  = machine.GP13
+	blPin  = machine.GP2
 )
 
 func main() {
@@ -28,7 +29,7 @@ func main() {
 		dc:                dcPin,
 		wr:                wrPin,
 		rd:                rdPin,
-		d0:                d0Pin,
+		d0:                db0Pin,
 		bl:                blPin,
 		stateMachineIndex: 0,
 		dmaChannel:        2,
