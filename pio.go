@@ -363,6 +363,35 @@ func (sm *StateMachine) SetConsecutivePinDirs(pin machine.Pin, count uint8, isOu
 	reg.Set(pinctrl_saved)
 }
 
+func (sm *StateMachine) IsTXFIFOEmpty() bool {
+	return (sm.PIO.Device.FSTAT.Get() & (1 << (rp.PIO0_FSTAT_TXEMPTY_Pos + sm.Index))) != 0
+}
+
+func (cfg *StateMachineConfig) SetSidePins(pin machine.Pin) {
+	cfg.PinCtrl = (cfg.PinCtrl & ^uint32(rp.PIO0_SM0_PINCTRL_SIDESET_BASE_Msk)) |
+		(uint32(pin) << rp.PIO0_SM0_PINCTRL_SIDESET_BASE_Pos)
+}
+
+type FifoJoin int
+
+const (
+	FIFO_JOIN_NONE FifoJoin = iota
+	FIFO_JOIN_TX
+	FIFO_JOIN_RX
+)
+
+/*
+	static inline void sm_config_set_fifo_join(pio_sm_config *c, enum pio_fifo_join join) {
+	    valid_params_if(PIO, join == PIO_FIFO_JOIN_NONE || join == PIO_FIFO_JOIN_TX || join == PIO_FIFO_JOIN_RX);
+	    c->shiftctrl = (c->shiftctrl & (uint)~(PIO_SM0_SHIFTCTRL_FJOIN_TX_BITS | PIO_SM0_SHIFTCTRL_FJOIN_RX_BITS)) |
+	                   (((uint)join) << PIO_SM0_SHIFTCTRL_FJOIN_TX_LSB);
+	}
+*/
+func (cfg *StateMachineConfig) SetFIFOJoin(join FifoJoin) {
+	cfg.ShiftCtrl = (cfg.ShiftCtrl & ^uint32(rp.PIO0_SM0_SHIFTCTRL_FJOIN_TX_Msk|rp.PIO0_SM0_SHIFTCTRL_FJOIN_RX_Msk)) |
+		(uint32(join) << rp.PIO0_SM0_SHIFTCTRL_FJOIN_TX_Pos)
+}
+
 // Exec will immediately execute an instruction on the state machine
 func (sm *StateMachine) Exec(instr uint16) {
 	reg := sm.GetRegister(StateMachineInstrReg)
