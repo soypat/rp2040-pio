@@ -11,16 +11,25 @@ import (
 
 const clockHz = 133000000
 
+const (
+	csPin = machine.GP4
+	dcPin = machine.GP2
+	wrPin = machine.GP1
+	rdPin = machine.GP3
+	d0Pin = machine.GP0
+	blPin = machine.GP5
+)
+
 func main() {
 	time.Sleep(5 * time.Second)
 	println("Initializing Display")
 	display := ST7789{
-		cs:                machine.LCD_CS,
-		dc:                machine.LCD_DC,
-		wr:                machine.LCD_WR,
-		rd:                machine.LCD_WR,
-		d0:                machine.LCD_DB0,
-		bl:                machine.LCD_BACKLIGHT,
+		cs:                csPin,
+		dc:                dcPin,
+		wr:                wrPin,
+		rd:                rdPin,
+		d0:                d0Pin,
+		bl:                blPin,
 		stateMachineIndex: 0,
 		dmaChannel:        2,
 		width:             320,
@@ -43,7 +52,7 @@ func main() {
 	setDREQ(dmaConfig, display.pio.Device.GetIRQ())
 	dmaChannelConfigure(display.dmaChannel, dmaConfig, display.pio.Device.TXF0.Reg, 0, 0, false)
 
-	machine.LCD_RD.High()
+	rdPin.High()
 
 	println("Display Common Init")
 	display.CommonInit()
