@@ -31,10 +31,6 @@ const (
 type PIO struct {
 	// Bitmask of used instruction space
 	usedSpaceMask uint32
-
-	// StateMachines provides access to the 4 state machines in this PIO
-	StateMachines [4]StateMachine
-
 	// Device is the actual hardware device
 	Device *rp.PIO0_Type
 }
