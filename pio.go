@@ -106,13 +106,6 @@ func (pio *PIO) StateMachine(index uint8) StateMachine {
 	}
 }
 
-func (pio *PIO) Configure() {
-	// for i := 0; i < 4; i++ {
-	// 	pio.StateMachines[i].PIO = pio
-	// 	pio.StateMachines[i].index = uint8(i)
-	// }
-}
-
 // AddProgram loads a PIO program into PIO memory
 func (pio *PIO) AddProgram(program *Program) uint8 {
 	offset := pio.findOffsetForProgram(program)

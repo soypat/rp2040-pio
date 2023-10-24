@@ -40,8 +40,6 @@ func main() {
 
 	println("Initializing PIO")
 	display.pio = pio.PIO0
-	println("Configuring PIO")
-	display.pio.Configure()
 	println("Parallel Init")
 	display.ParallelInit()
 
