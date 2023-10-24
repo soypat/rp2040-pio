@@ -55,6 +55,11 @@ type StateMachine struct {
 	index uint8
 }
 
+// StateMachineIndex returns the index of the state machine within the PIO.
+func (sm StateMachine) StateMachineIndex() uint8 {
+	return sm.index
+}
+
 // StateMachineConfig holds the configuration for a PIO state
 // machine.
 //
@@ -81,7 +86,8 @@ type Program struct {
 	Origin int8
 }
 
-func (pio *PIO) Index() int {
+// BlockIndex returns 0 or 1 depending on whether the underlying device is PIO0 or PIO1.
+func (pio *PIO) BlockIndex() uint8 {
 	switch pio.Device {
 	case rp.PIO0:
 		return 0
