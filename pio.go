@@ -5,6 +5,7 @@ package pio
 
 import (
 	"device/rp"
+	"errors"
 	"machine"
 	"runtime/volatile"
 	"unsafe"
@@ -18,6 +19,8 @@ var (
 	PIO1 = &PIO{
 		Device: rp.PIO1,
 	}
+
+	ErrOutOfProgramSpace = errors.New("pio: out of program space")
 )
 
 const (
@@ -109,18 +112,18 @@ func (pio *PIO) StateMachine(index uint8) StateMachine {
 }
 
 // AddProgram loads a PIO program into PIO memory
-func (pio *PIO) AddProgram(program *Program) uint8 {
+func (pio *PIO) AddProgram(program *Program) (uint8, error) {
 	offset := pio.findOffsetForProgram(program)
 	if offset < 0 {
-		panic("no program space")
+		return 0, ErrOutOfProgramSpace
 	}
 	pio.AddProgramAtOffset(program, uint8(offset))
-	return uint8(offset)
+	return uint8(offset), nil
 }
 
-func (pio *PIO) AddProgramAtOffset(program *Program, offset uint8) {
+func (pio *PIO) AddProgramAtOffset(program *Program, offset uint8) error {
 	if !pio.CanAddProgramAtOffset(program, offset) {
-		panic("no program space")
+		return ErrOutOfProgramSpace
 	}
 
 	programLen := uint8(len(program.Instructions))
@@ -138,6 +141,7 @@ func (pio *PIO) AddProgramAtOffset(program *Program, offset uint8) {
 	// Mark the instruction space as in-use
 	programMask := uint32((1 << programLen) - 1)
 	pio.usedSpaceMask |= programMask << uint32(offset)
+	return nil
 }
 
 func (pio *PIO) CanAddProgramAtOffset(program *Program, offset uint8) bool {
