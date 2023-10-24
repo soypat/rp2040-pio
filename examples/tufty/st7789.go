@@ -42,7 +42,8 @@ type ST7789 struct {
 // using an 8-bit parallel connection
 func (st *ST7789) ParallelInit() {
 	offset := st.pio.AddProgram(&st7789_parallelProgram)
-	parallelST7789Init(&st.pio.StateMachines[st.stateMachineIndex], offset, st.d0, st.wr)
+	sm := st.pio.StateMachine(st.stateMachineIndex)
+	parallelST7789Init(sm, offset, st.d0, st.wr)
 }
 
 func (st *ST7789) SetBacklight(on bool) {
@@ -202,7 +203,8 @@ func (st *ST7789) writeBlockingParallel(data []byte, length int) {
 	}
 	// Wait for PIO State Machine FIFO to be empty
 	println("Waiting for SM FIFO to be empty")
-	for !st.pio.StateMachines[st.stateMachineIndex].IsTXFIFOEmpty() {
+	sm := st.pio.StateMachine(st.stateMachineIndex)
+	for !sm.IsTXFIFOEmpty() {
 		time.Sleep(10 * time.Nanosecond)
 	}
 }

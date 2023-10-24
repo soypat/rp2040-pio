@@ -34,7 +34,7 @@ func st7789_parallelProgramDefaultConfig(offset uint8) pio.StateMachineConfig {
 }
 
 // helper function to setup GPIO output and configure the SM to output on needed pins
-func parallelST7789Init(sm *pio.StateMachine, offset uint8, d0_pin machine.Pin, wr_pin machine.Pin) {
+func parallelST7789Init(sm pio.StateMachine, offset uint8, d0_pin machine.Pin, wr_pin machine.Pin) {
     d0_pin.Configure(machine.PinConfig{Mode: machine.PinPIO0})
     sm.SetConsecutivePinDirs(d0_pin, 8, true)
     cfg := st7789_parallelProgramDefaultConfig(offset)

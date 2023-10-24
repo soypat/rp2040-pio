@@ -32,9 +32,6 @@ type PIO struct {
 	// Bitmask of used instruction space
 	usedSpaceMask uint32
 
-	// Index of this PIO (0 or 1)
-	Index uint8
-
 	// StateMachines provides access to the 4 state machines in this PIO
 	StateMachines [4]StateMachine
 
@@ -58,8 +55,8 @@ type StateMachine struct {
 	// The PIO containing this state machine
 	PIO *PIO
 
-	// Index of this state machine
-	Index uint8
+	// index of this state machine
+	index uint8
 }
 
 // StateMachineConfig holds the configuration for a PIO state
@@ -88,16 +85,32 @@ type Program struct {
 	Origin int8
 }
 
-func (pio *PIO) Configure() {
-	pio.Index = 0
-	if pio == PIO1 {
-		pio.Index = 1
+func (pio *PIO) Index() int {
+	switch pio.Device {
+	case rp.PIO0:
+		return 0
+	case rp.PIO1:
+		return 1
 	}
+	panic("invalid PIO")
+}
 
-	for i := 0; i < 4; i++ {
-		pio.StateMachines[i].PIO = pio
-		pio.StateMachines[i].Index = uint8(i)
+// StateMachine returns a state machine by index.
+func (pio *PIO) StateMachine(index uint8) StateMachine {
+	if index > 3 {
+		panic("invalid state machine index")
 	}
+	return StateMachine{
+		PIO:   pio,
+		index: index,
+	}
+}
+
+func (pio *PIO) Configure() {
+	// for i := 0; i < 4; i++ {
+	// 	pio.StateMachines[i].PIO = pio
+	// 	pio.StateMachines[i].index = uint8(i)
+	// }
 }
 
 // AddProgram loads a PIO program into PIO memory
@@ -260,7 +273,7 @@ func (cfg *StateMachineConfig) SetSetPins(base machine.Pin, count uint8) {
 //
 // initialPC is the initial program counter
 // cfg is optional.  If not specified the default config will be used
-func (sm *StateMachine) Init(initialPC uint8, cfg *StateMachineConfig) {
+func (sm StateMachine) Init(initialPC uint8, cfg *StateMachineConfig) {
 	// Halt the state machine to set sensible defaults
 	sm.SetEnabled(false)
 
@@ -278,7 +291,7 @@ func (sm *StateMachine) Init(initialPC uint8, cfg *StateMachineConfig) {
 		(1 << rp.PIO0_FDEBUG_RXUNDER_Pos) |
 		(1 << rp.PIO0_FDEBUG_TXSTALL_Pos) |
 		(1 << rp.PIO0_FDEBUG_RXSTALL_Pos))
-	sm.PIO.Device.FDEBUG.Set(fdebugMask << sm.Index)
+	sm.PIO.Device.FDEBUG.Set(fdebugMask << sm.index)
 
 	sm.Restart()
 	sm.ClkDivRestart()
@@ -286,29 +299,29 @@ func (sm *StateMachine) Init(initialPC uint8, cfg *StateMachineConfig) {
 }
 
 // SetEnabled controls whether the state machine is running
-func (sm *StateMachine) SetEnabled(enabled bool) {
-	sm.PIO.Device.CTRL.ReplaceBits(boolToBit(enabled), 0x1, sm.Index)
+func (sm StateMachine) SetEnabled(enabled bool) {
+	sm.PIO.Device.CTRL.ReplaceBits(boolToBit(enabled), 0x1, sm.index)
 }
 
 // Restart restarts the state machine
-func (sm *StateMachine) Restart() {
-	sm.PIO.Device.CTRL.SetBits(1 << (rp.PIO0_CTRL_SM_RESTART_Pos + sm.Index))
+func (sm StateMachine) Restart() {
+	sm.PIO.Device.CTRL.SetBits(1 << (rp.PIO0_CTRL_SM_RESTART_Pos + sm.index))
 }
 
 // Restart a state machine clock divider with a phase of 0
-func (sm *StateMachine) ClkDivRestart() {
-	sm.PIO.Device.CTRL.SetBits(1 << (rp.PIO0_CTRL_CLKDIV_RESTART_Pos + sm.Index))
+func (sm StateMachine) ClkDivRestart() {
+	sm.PIO.Device.CTRL.SetBits(1 << (rp.PIO0_CTRL_CLKDIV_RESTART_Pos + sm.index))
 }
 
 // SetConfig applies state machine configuration to a state machine
-func (sm *StateMachine) SetConfig(cfg *StateMachineConfig) {
+func (sm StateMachine) SetConfig(cfg *StateMachineConfig) {
 	sm.GetRegister(StateMachineClkDivReg).Set(cfg.ClkDiv)
 	sm.GetRegister(StateMachineExecCtrlReg).Set(cfg.ExecCtrl)
 	sm.GetRegister(StateMachineShiftCtrlReg).Set(cfg.ShiftCtrl)
 	sm.GetRegister(StateMachinePinCtrlReg).Set(cfg.PinCtrl)
 }
 
-func (sm *StateMachine) Tx(data uint32) {
+func (sm StateMachine) Tx(data uint32) {
 	reg := sm.GetTxRegister()
 	reg.Set(data)
 }
@@ -317,12 +330,12 @@ func (sm *StateMachine) Tx(data uint32) {
 //
 // This method abstracts the layout of the state machines in the PIO register
 // space from the caller.
-func (sm *StateMachine) GetRegister(reg PIOStateMachineReg) *volatile.Register32 {
+func (sm StateMachine) GetRegister(reg PIOStateMachineReg) *volatile.Register32 {
 	// SM0_CLKDIV is the first register of the first state machine
 	start := unsafe.Pointer(&sm.PIO.Device.SM0_CLKDIV)
 
 	// 24 bytes (6 registers) per state machine
-	offset := uintptr(sm.Index) * 24
+	offset := uintptr(sm.index) * 24
 
 	// reg encodes the register offset within the state machine
 	offset += uintptr(reg)
@@ -331,18 +344,18 @@ func (sm *StateMachine) GetRegister(reg PIOStateMachineReg) *volatile.Register32
 }
 
 // GetTxRegister gets a pointer to the Tx FIFO register for this state machine
-func (sm *StateMachine) GetTxRegister() *volatile.Register32 {
+func (sm StateMachine) GetTxRegister() *volatile.Register32 {
 	// SM0_CLKDIV is the first register of the first state machine
 	start := unsafe.Pointer(&sm.PIO.Device.TXF0)
 
 	// 4 bytes (1 register) per state machine
-	offset := uintptr(sm.Index) * 4
+	offset := uintptr(sm.index) * 4
 
 	return (*volatile.Register32)(unsafe.Pointer(uintptr(start) + offset))
 }
 
 // SetConsecurityPinDirs sets a range of pins to either 'in' or 'out'
-func (sm *StateMachine) SetConsecutivePinDirs(pin machine.Pin, count uint8, isOut bool) {
+func (sm StateMachine) SetConsecutivePinDirs(pin machine.Pin, count uint8, isOut bool) {
 	reg := sm.GetRegister(StateMachinePinCtrlReg)
 
 	pinctrl_saved := reg.Get()
@@ -363,8 +376,8 @@ func (sm *StateMachine) SetConsecutivePinDirs(pin machine.Pin, count uint8, isOu
 	reg.Set(pinctrl_saved)
 }
 
-func (sm *StateMachine) IsTXFIFOEmpty() bool {
-	return (sm.PIO.Device.FSTAT.Get() & (1 << (rp.PIO0_FSTAT_TXEMPTY_Pos + sm.Index))) != 0
+func (sm StateMachine) IsTXFIFOEmpty() bool {
+	return (sm.PIO.Device.FSTAT.Get() & (1 << (rp.PIO0_FSTAT_TXEMPTY_Pos + sm.index))) != 0
 }
 
 func (cfg *StateMachineConfig) SetSidePins(pin machine.Pin) {
@@ -393,12 +406,12 @@ func (cfg *StateMachineConfig) SetFIFOJoin(join FifoJoin) {
 }
 
 // Exec will immediately execute an instruction on the state machine
-func (sm *StateMachine) Exec(instr uint16) {
+func (sm StateMachine) Exec(instr uint16) {
 	reg := sm.GetRegister(StateMachineInstrReg)
 	reg.Set(uint32(instr))
 }
 
-func (sm *StateMachine) ClearFIFOs() {
+func (sm StateMachine) ClearFIFOs() {
 	xorReg := XORRegister(sm.GetRegister(StateMachineShiftCtrlReg))
 
 	xorReg.Set(rp.PIO0_SM0_SHIFTCTRL_FJOIN_RX_Msk)
