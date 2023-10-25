@@ -41,7 +41,7 @@ type ST7789 struct {
 // ParallelInit initializes everything necessary to communicate with the display
 // using an 8-bit parallel connection
 func (st *ST7789) ParallelInit() {
-	offset, err := st.pio.AddProgram(&st7789_parallelProgram)
+	offset, err := st.pio.AddProgram(st7789_parallelInstructions, st7789_parallelOrigin)
 	if err != nil {
 		panic(err.Error())
 	}
