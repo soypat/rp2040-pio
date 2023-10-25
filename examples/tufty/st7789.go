@@ -41,7 +41,10 @@ type ST7789 struct {
 // ParallelInit initializes everything necessary to communicate with the display
 // using an 8-bit parallel connection
 func (st *ST7789) ParallelInit() {
-	offset := st.pio.AddProgram(&st7789_parallelProgram)
+	offset, err := st.pio.AddProgram(&st7789_parallelProgram)
+	if err != nil {
+		panic(err.Error())
+	}
 	sm := st.pio.StateMachine(st.stateMachineIndex)
 	parallelST7789Init(sm, offset, st.d0, st.wr)
 }
@@ -204,7 +207,7 @@ func (st *ST7789) writeBlockingParallel(data []byte, length int) {
 	// Wait for PIO State Machine FIFO to be empty
 	println("Waiting for SM FIFO to be empty")
 	sm := st.pio.StateMachine(st.stateMachineIndex)
-	for !sm.IsTXFIFOEmpty() {
+	for !sm.IsTxFIFOEmpty() {
 		time.Sleep(10 * time.Nanosecond)
 	}
 }
