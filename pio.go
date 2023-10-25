@@ -14,10 +14,10 @@ import (
 // RP2040 PIO peripheral handles.
 var (
 	PIO0 = &PIO{
-		Device: rp.PIO0,
+		HW: rp.PIO0,
 	}
 	PIO1 = &PIO{
-		Device: rp.PIO1,
+		HW: rp.PIO1,
 	}
 
 	ErrOutOfProgramSpace = errors.New("pio: out of program space")
@@ -34,8 +34,8 @@ const (
 type PIO struct {
 	// Bitmask of used instruction space
 	usedSpaceMask uint32
-	// Device is the actual hardware device
-	Device *rp.PIO0_Type
+	// HW is the actual hardware device
+	HW *rp.PIO0_Type
 }
 
 type PIOStateMachineReg uint8
@@ -91,7 +91,7 @@ type Program struct {
 
 // BlockIndex returns 0 or 1 depending on whether the underlying device is PIO0 or PIO1.
 func (pio *PIO) BlockIndex() uint8 {
-	switch pio.Device {
+	switch pio.HW {
 	case rp.PIO0:
 		return 0
 	case rp.PIO1:
@@ -157,7 +157,7 @@ func (pio *PIO) CanAddProgramAtOffset(program *Program, offset uint8) bool {
 func (pio *PIO) writeInstructionMemory(offset uint8, value uint16) {
 	// Instead of using MEM0, MEM1, etc, calculate the offset of the
 	// disired register starting at MEM0
-	start := unsafe.Pointer(&pio.Device.INSTR_MEM0)
+	start := unsafe.Pointer(&pio.HW.INSTR_MEM0)
 
 	// Instruction Memory registers are 32-bit, with only lower 16 used
 	reg := (*volatile.Register32)(unsafe.Pointer(uintptr(start) + uintptr(offset)*4))
@@ -290,7 +290,7 @@ func (sm StateMachine) Init(initialPC uint8, cfg *StateMachineConfig) {
 		(1 << rp.PIO0_FDEBUG_RXUNDER_Pos) |
 		(1 << rp.PIO0_FDEBUG_TXSTALL_Pos) |
 		(1 << rp.PIO0_FDEBUG_RXSTALL_Pos))
-	sm.PIO.Device.FDEBUG.Set(fdebugMask << sm.index)
+	sm.PIO.HW.FDEBUG.Set(fdebugMask << sm.index)
 
 	sm.Restart()
 	sm.ClkDivRestart()
@@ -299,17 +299,17 @@ func (sm StateMachine) Init(initialPC uint8, cfg *StateMachineConfig) {
 
 // SetEnabled controls whether the state machine is running
 func (sm StateMachine) SetEnabled(enabled bool) {
-	sm.PIO.Device.CTRL.ReplaceBits(boolToBit(enabled), 0x1, sm.index)
+	sm.PIO.HW.CTRL.ReplaceBits(boolToBit(enabled), 0x1, sm.index)
 }
 
 // Restart restarts the state machine
 func (sm StateMachine) Restart() {
-	sm.PIO.Device.CTRL.SetBits(1 << (rp.PIO0_CTRL_SM_RESTART_Pos + sm.index))
+	sm.PIO.HW.CTRL.SetBits(1 << (rp.PIO0_CTRL_SM_RESTART_Pos + sm.index))
 }
 
 // Restart a state machine clock divider with a phase of 0
 func (sm StateMachine) ClkDivRestart() {
-	sm.PIO.Device.CTRL.SetBits(1 << (rp.PIO0_CTRL_CLKDIV_RESTART_Pos + sm.index))
+	sm.PIO.HW.CTRL.SetBits(1 << (rp.PIO0_CTRL_CLKDIV_RESTART_Pos + sm.index))
 }
 
 // SetConfig applies state machine configuration to a state machine
@@ -331,7 +331,7 @@ func (sm StateMachine) Tx(data uint32) {
 // space from the caller.
 func (sm StateMachine) GetRegister(reg PIOStateMachineReg) *volatile.Register32 {
 	// SM0_CLKDIV is the first register of the first state machine
-	start := unsafe.Pointer(&sm.PIO.Device.SM0_CLKDIV)
+	start := unsafe.Pointer(&sm.PIO.HW.SM0_CLKDIV)
 
 	// 24 bytes (6 registers) per state machine
 	offset := uintptr(sm.index) * 24
@@ -345,7 +345,7 @@ func (sm StateMachine) GetRegister(reg PIOStateMachineReg) *volatile.Register32 
 // GetTxRegister gets a pointer to the Tx FIFO register for this state machine
 func (sm StateMachine) GetTxRegister() *volatile.Register32 {
 	// SM0_CLKDIV is the first register of the first state machine
-	start := unsafe.Pointer(&sm.PIO.Device.TXF0)
+	start := unsafe.Pointer(&sm.PIO.HW.TXF0)
 
 	// 4 bytes (1 register) per state machine
 	offset := uintptr(sm.index) * 4
@@ -376,7 +376,7 @@ func (sm StateMachine) SetConsecutivePinDirs(pin machine.Pin, count uint8, isOut
 }
 
 func (sm StateMachine) IsTXFIFOEmpty() bool {
-	return (sm.PIO.Device.FSTAT.Get() & (1 << (rp.PIO0_FSTAT_TXEMPTY_Pos + sm.index))) != 0
+	return (sm.PIO.HW.FSTAT.Get() & (1 << (rp.PIO0_FSTAT_TXEMPTY_Pos + sm.index))) != 0
 }
 
 func (cfg *StateMachineConfig) SetSidePins(pin machine.Pin) {
