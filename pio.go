@@ -23,13 +23,6 @@ var (
 	ErrOutOfProgramSpace = errors.New("pio: out of program space")
 )
 
-const (
-	REG_ALIAS_RW_BITS  = 0x0 << 12
-	REG_ALIAS_XOR_BITS = 0x1 << 12
-	REG_ALIAS_SET_BITS = 0x2 << 12
-	REG_ALIAS_CLR_BITS = 0x3 << 12
-)
-
 // PIO represents one of the two PIO peripherals in the RP2040
 type PIO struct {
 	// Bitmask of used instruction space
@@ -411,11 +404,18 @@ func (sm StateMachine) Exec(instr uint16) {
 }
 
 func (sm StateMachine) ClearFIFOs() {
-	xorReg := XORRegister(sm.GetRegister(StateMachineShiftCtrlReg))
+	xorReg := xorRegister(sm.GetRegister(StateMachineShiftCtrlReg))
 
 	xorReg.Set(rp.PIO0_SM0_SHIFTCTRL_FJOIN_RX_Msk)
 	xorReg.Set(rp.PIO0_SM0_SHIFTCTRL_FJOIN_RX_Msk)
 }
+
+const (
+	REG_ALIAS_RW_BITS  = 0x0 << 12
+	REG_ALIAS_XOR_BITS = 0x1 << 12
+	REG_ALIAS_SET_BITS = 0x2 << 12
+	REG_ALIAS_CLR_BITS = 0x3 << 12
+)
 
 // Gets the 'XOR' alias for a register
 //
@@ -428,7 +428,8 @@ func (sm StateMachine) ClearFIFOs() {
 //   - Addr + 0x1000 : atomic XOR on write
 //   - Addr + 0x2000 : atomic bitmask set on write
 //   - Addr + 0x3000 : atomic bitmask clear on write
-func XORRegister(reg *volatile.Register32) *volatile.Register32 {
+func xorRegister(reg *volatile.Register32) *volatile.Register32 {
+
 	return (*volatile.Register32)(unsafe.Pointer(uintptr(unsafe.Pointer(reg)) | REG_ALIAS_XOR_BITS))
 }
 
