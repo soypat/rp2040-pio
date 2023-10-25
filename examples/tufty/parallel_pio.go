@@ -46,6 +46,6 @@ func parallelST7789Init(sm pio.StateMachine, offset uint8, d0_pin machine.Pin, w
     sysClkHz := machine.CPUFrequency()
     clkDiv := (sysClkHz + maxPIOClk -1) / maxPIOClk
     cfg.SetClkDivIntFrac(uint16(clkDiv), 1)
-	sm.Init(offset, &cfg)
+	sm.Init(offset, cfg)
 	sm.SetEnabled(true)
 }
