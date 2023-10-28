@@ -74,6 +74,10 @@ func (pio *PIO) StateMachine(index uint8) StateMachine {
 // AddProgram loads a PIO program into PIO memory and returns the offset where it was loaded.
 // This function will try to find the next available slot of memory for the program
 // and will return an error if there is not enough memory to add the program.
+//
+// The instructions argument holds program binary code in 16-bit words.
+// origin indicates where in the PIO execution memory the program must be loaded,
+// or -1 if the code is position independent.
 func (pio *PIO) AddProgram(instructions []uint16, origin int8) (uint8, error) {
 	offset := pio.findOffsetForProgram(instructions, origin)
 	if offset < 0 {
